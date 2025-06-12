@@ -79,4 +79,60 @@ which contain both types of weights. For these, `use_ema=False` will load and us
 Here we only support text to image task, which is most relevantly used. In the future we will try to propose more complete tasks.
 
 
+## 问题
+### 部署问题1
+创建conda环境报错
+> ERROR: Command errored out with exit status 128: git clone -q https://github.com/CompVis/taming-transformers.git /mnt/HE-diffusion/src/taming-transformers Check the logs for full command output.
 
+解决：手动下载两个包，并进入仓库目录执行安装
+
+> 修改[environment.yaml](environment.yaml)以下代码
+> - -e git+https://github.com/CompVis/taming-transformers.git@master#egg=taming-transformers
+> - -e git+https://github.com/openai/CLIP.git@main#egg=clip
+> 
+> 改为（path改为实际路径）
+> - -e /path/HE-diffusion/src/taming-transformers
+> - -e /path/HE-diffusion/src/CLIP
+>
+> pip install -e .
+
+### 部署问题2
+Hugging Face无法连接
+> OSError: We couldn't connect to 'https://huggingface.co' to load this model, couldn't find it in the cached files and it looks like CompVis/stable-diffusion-safety-checker is not the path to a directory containing a preprocessor_config.json file.
+
+> 解决：
+> 
+> 临时设置：
+> - export HF_ENDPOINT=https://hf-mirror.com
+> 
+> 永久设置：
+> - vim ~/.bashrc
+> - 最后一行添加：export HF_ENDPOINT=https://hf-mirror.com
+> - source ~/.bashrc
+
+### 部署问题3
+
+> FileNotFoundError: [Errno 2] No such file or directory: 'models/ldm/stable-diffusion-v1/model.ckpt'
+
+> 解决：
+> 
+> 本地下载至[/HE-Diffusion/models/ldm/stable-diffusion-v1/]目录下：https://huggingface.co/CompVis/stable-diffusion-v-1-4-original/blob/main/sd-v1-4-full-ema.ckpt
+>
+> 并修改文件名：mv sd-v1-4-full-ema.ckpt model.ckpt
+
+### 执行问题1
+
+> RuntimeError: expected scalar type BFloat16 but found Float
+
+> 解决（使用GPU）：
+> 修改[scripts/enc_txt2img.py]的250-251、301-302行代码
+> - device = torch.device("cpu") # 250
+> - #device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu") # 251
+> - #with precision_scope("cuda"): # 301
+> - with precision_scope("cpu"): # 302
+> 
+> 改为
+> - #device = torch.device("cpu") # 250
+> - device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu") # 251
+> - #with precision_scope("cuda"): # 301
+> - with precision_scope("cpu"): # 302
